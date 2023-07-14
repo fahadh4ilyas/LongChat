@@ -1,7 +1,6 @@
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
-from torch import nn
 
 import transformers
 from transformers.models.llama.modeling_llama import apply_rotary_pos_emb
@@ -44,14 +43,19 @@ def forward(
     query_states = query_states.transpose(1, 2)
     key_states = key_states.transpose(1, 2)
     value_states = value_states.transpose(1, 2)
-    if attention_mask is None:
-        attn_output = xops.memory_efficient_attention(
-            query_states, key_states, value_states, attn_bias=xops.LowerTriangularMask(), p=0
-        )
-    else:
-        attn_output = xops.memory_efficient_attention(
-            query_states, key_states, value_states, attn_bias=xops.LowerTriangularMaskWithTensorBias(attention_mask), p=0
-        )
+    # if attention_mask is not None:
+    #     if attention_mask.size() != (bsz, 1, q_len, kv_seq_len):
+    #         raise ValueError(
+    #             f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
+    #         )
+    #     attn_output = xops.memory_efficient_attention(
+    #         query_states, key_states, value_states, attn_bias=xops.fmha.attn_bias.LowerTriangularMaskWithTensorBias(attention_mask), p=0
+    #     )
+    # else:
+    attn_output = xops.memory_efficient_attention(
+        query_states, key_states, value_states, attn_bias=xops.LowerTriangularMask(), p=0
+    )
+
     attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)
 
     attn_output = self.o_proj(attn_output)
